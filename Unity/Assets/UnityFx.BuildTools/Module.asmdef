@@ -1,0 +1,8 @@
+{
+    "name": "UnityFx.BuildTools",
+    "references": [],
+    "optionalUnityReferences": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false
+}
