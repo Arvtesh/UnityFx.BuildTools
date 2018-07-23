@@ -62,7 +62,8 @@ namespace UnityFx.BuildTools.Editor
 				namePrefix = string.Empty;
 			}
 
-			throw new NotImplementedException();
+			// TODO
+			return new BuildConfig();
 		}
 
 		/// <summary>
@@ -283,12 +284,48 @@ namespace UnityFx.BuildTools.Editor
 
 		private void CombineVersionConfig(IVersionConfig fallbackConfig, BuildConfig result)
 		{
-			throw new NotImplementedException();
+			if (string.IsNullOrEmpty(result.BundleVersion))
+			{
+				result.BundleVersion = fallbackConfig.BundleVersion;
+			}
+
+			if (result.BundleVersionCode <= 0)
+			{
+				result.BundleVersionCode = fallbackConfig.BundleVersionCode;
+			}
+
+			if (result.BuildNumber <= 0)
+			{
+				result.BuildNumber = fallbackConfig.BuildNumber;
+			}
 		}
 
 		private void CombineAppConfig(IAppConfig fallbackConfig, BuildConfig result)
 		{
-			throw new NotImplementedException();
+			if (string.IsNullOrEmpty(result.CompanyId))
+			{
+				result.CompanyId = fallbackConfig.CompanyId;
+			}
+
+			if (string.IsNullOrEmpty(result.CompanyName))
+			{
+				result.CompanyName = fallbackConfig.CompanyName;
+			}
+
+			if (string.IsNullOrEmpty(result.ProductId))
+			{
+				result.ProductId = fallbackConfig.ProductId;
+			}
+
+			if (string.IsNullOrEmpty(result.ProductName))
+			{
+				result.ProductName = fallbackConfig.ProductName;
+			}
+
+			if (string.IsNullOrEmpty(result.BundleIdentifier))
+			{
+				result.BundleIdentifier = fallbackConfig.BundleIdentifier;
+			}
 		}
 
 		#endregion

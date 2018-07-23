@@ -19,9 +19,9 @@ namespace UnityFx.BuildTools.Editor
 	/// </summary>
 	public static class BuildScript
 	{
-		#region constants
+		#region data
 
-		private const string _buildConfigPath = "BuildConfig.xml";
+		private static Settings _settings;
 
 		#endregion
 
@@ -58,15 +58,36 @@ namespace UnityFx.BuildTools.Editor
 			public const string DefaultBuildConfigName = "BuildConfig";
 
 			/// <summary>
-			/// Initializes a new instance of the <see cref="Settings"/> class.
+			/// 
 			/// </summary>
-			public Settings()
+			public static Settings FromEnvironment()
 			{
-				EnvNamePrefix = DefaultEnvPrefix;
-				BuildConfigPath = DefaultBuildConfigPath;
-				BuildConfigName = DefaultBuildConfigName;
-				GitVersionPath = DefaultGitVersionPath;
-				BuildPath = DefaultBuildPath;
+				var result = new Settings();
+
+				result.GitVersionPath = Environment.GetEnvironmentVariable("GITVERSION_PATH");
+				result.BuildConfigPath = Environment.GetEnvironmentVariable("BUILD_CONFIG_PATH");
+				result.BuildConfigName = Environment.GetEnvironmentVariable("BUILD_CONFIG_NAME");
+				result.EnvNamePrefix = string.Empty;
+
+				// BUILD_PATH
+				result.BuildPath = Environment.GetEnvironmentVariable("BUILD_PATH");
+
+				if (string.IsNullOrEmpty(result.BuildPath))
+				{
+					// Jenkins build path (if any)
+					result.BuildPath = Environment.GetEnvironmentVariable("BUILD_URL");
+				}
+
+				// BUILD_NUMBER
+				var buildNumber = Environment.GetEnvironmentVariable("BUILD_NUMBER");
+
+				if (!string.IsNullOrEmpty(buildNumber))
+				{
+					result.BuildNumber = int.Parse(buildNumber);
+				}
+
+				result.Validate();
+				return result;
 			}
 
 			/// <summary>
@@ -124,6 +145,43 @@ namespace UnityFx.BuildTools.Editor
 			/// 
 			/// </summary>
 			public string BuildConfigName { get; set; }
+
+			/// <summary>
+			/// 
+			/// </summary>
+			public int BuildNumber { get; set; }
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public static Settings GetSettings()
+		{
+			var result = _settings;
+
+			if (result == null)
+			{
+				result = Settings.FromEnvironment();
+			}
+			else
+			{
+				result.Validate();
+			}
+
+			return result;
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public static void SetSettings(Settings settings)
+		{
+			if (settings == null)
+			{
+				throw new ArgumentNullException("settings");
+			}
+
+			_settings = settings;
 		}
 
 		/// <summary>
@@ -165,8 +223,6 @@ namespace UnityFx.BuildTools.Editor
 				throw new ArgumentNullException("configType");
 			}
 
-			settings.Validate();
-
 			var envConfig = BuildConfig.FromEnvironment(configType, settings.EnvNamePrefix);
 			var platformConfigPath = GetConfigPath(settings.BuildConfigPath, settings.BuildConfigName, target);
 			var sharedConfigPath = GetConfigPath(settings.BuildConfigPath, settings.BuildConfigName, BuildTarget.NoTarget);
@@ -175,11 +231,15 @@ namespace UnityFx.BuildTools.Editor
 			{
 				config = config.Combine(envConfig);
 			}
+			else
+			{
+				config = envConfig;
+			}
 
 			if (File.Exists(platformConfigPath))
 			{
 				var platformConfig = BuildConfig.FromXml(configType, platformConfigPath);
-				config = envConfig.Combine(platformConfig);
+				config = config.Combine(platformConfig);
 			}
 
 			if (File.Exists(sharedConfigPath))
@@ -190,7 +250,7 @@ namespace UnityFx.BuildTools.Editor
 
 			if (File.Exists(settings.GitVersionPath))
 			{
-				var versionConfig = new AppVersionInfo(settings.GitVersionPath);
+				var versionConfig = new AppVersionInfo(settings.GitVersionPath, settings.BuildNumber);
 				config = config.Combine(versionConfig);
 			}
 
@@ -200,8 +260,9 @@ namespace UnityFx.BuildTools.Editor
 		/// <summary>
 		/// Applies default build settings.
 		/// </summary>
-		public static void ApplyBuildConfig(Settings settings)
+		public static void ApplyBuildConfig()
 		{
+			var settings = GetSettings();
 			var config = LoadConfig(settings);
 
 			config.Apply();
@@ -211,7 +272,17 @@ namespace UnityFx.BuildTools.Editor
 		/// <summary>
 		/// Builds the project for the specified target.
 		/// </summary>
-		public static BuildReport Build(BuildTarget target, IBuildConfig config, Settings settings)
+		public static BuildReport Build(BuildTarget target, bool developmentBuild)
+		{
+			var settings = GetSettings();
+			var config = LoadConfig(settings, target);
+			return Build(target, config, settings, developmentBuild);
+		}
+
+		/// <summary>
+		/// Builds the project for the specified target.
+		/// </summary>
+		public static BuildReport Build(BuildTarget target, IBuildConfig config, Settings settings, bool developmentBuild)
 		{
 			if (target == BuildTarget.NoTarget)
 			{
@@ -228,14 +299,11 @@ namespace UnityFx.BuildTools.Editor
 				throw new ArgumentNullException("settings");
 			}
 
-			settings.Validate();
-
-			var versionInfo = new AppVersionInfo(settings.GitVersionPath);
 			var buildPath = GetBuildPath(config.ProductName, config.BundleVersion, settings.BuildPath, target);
 			var executableName = GetExecutableName(config.ProductName, target);
 			var executablePath = Path.Combine(buildPath, executableName);
 			var sceneNames = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray();
-			var buildOptions = GetBuildOptions(!versionInfo.IsRelease);
+			var buildOptions = GetBuildOptions(developmentBuild);
 			var playerOptions = new BuildPlayerOptions()
 			{
 				locationPathName = executablePath,
@@ -255,22 +323,34 @@ namespace UnityFx.BuildTools.Editor
 #if UNITY_CLOUD_BUILD
 
 		/// <summary>
-		/// Should be called from Unity Cloud Build PreExport.
+		/// Unity Cloud Build helpers.
 		/// </summary>
-		public static void PreExport(BuildManifestObject manifest, Settings settings)
+		public static class CloudBuild
 		{
-			var buildNumber = manifest.GetValue<int>("buildNumber");
-			var config = LoadConfig(settings, new BuildConfig() { BuildNumber = buildNumber });
+			/// <summary>
+			/// Should be set as PreExport method in Unity Cloud Build settings.
+			/// </summary>
+			public static void PreExport(BuildManifestObject manifest)
+			{
+				if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("BUILD_NUMBER")))
+				{
+					var buildNumber = manifest.GetValue<string>("buildNumber");
+					Environment.SetEnvironmentVariable("BUILD_NUMBER", buildNumber);
+				}
 
-			config.Apply();
-			config.DebugLog();
-		}
+				var settings = GetSettings();
+				var config = LoadConfig(settings);
 
-		/// <summary>
-		/// Called by Unity Cloud Build after the project export.
-		/// </summary>
-		public static void PostExport(string exportPath)
-		{
+				config.Apply();
+				config.DebugLog();
+			}
+
+			/// <summary>
+			/// Should be set as PostExport method in Unity Cloud Build settings.
+			/// </summary>
+			public static void PostExport(string exportPath)
+			{
+			}
 		}
 
 #endif

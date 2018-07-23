@@ -88,7 +88,7 @@ namespace UnityFx.BuildTools.Editor
 			}
 		}
 
-		/// <summary>s
+		/// <summary>
 		/// Initializes a new instance of the <see cref="AppVersionInfo"/> class.
 		/// </summary>
 		public AppVersionInfo(string gitVersionPath, int buildNumber = 0)
