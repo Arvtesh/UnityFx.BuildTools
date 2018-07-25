@@ -30,7 +30,7 @@ namespace UnityFx.BuildTools
 		/// <exception cref="InvalidOperationException"></exception>
 		public static void ApplyBuildConfig(IBuildConfig config)
 		{
-			ApplyAppConfig(config);
+			ApplyAppConfig(config, config.BuildTarget);
 			ApplyVersionConfig(config);
 
 			if (!string.IsNullOrEmpty(config.KeystoreName))
@@ -64,7 +64,7 @@ namespace UnityFx.BuildTools
 
 			if (config.Defines != null)
 			{
-				PlayerSettings.SetScriptingDefineSymbolsForGroup(GetActiveBuildTargetGroup(), string.Join(";", config.Defines));
+				PlayerSettings.SetScriptingDefineSymbolsForGroup(GetBuildTargetGroup(config.BuildTarget), string.Join(";", config.Defines));
 			}
 		}
 
@@ -98,7 +98,7 @@ namespace UnityFx.BuildTools
 		/// 
 		/// </summary>
 		/// <exception cref="InvalidOperationException"></exception>
-		public static void ApplyAppConfig(IAppConfig config)
+		public static void ApplyAppConfig(IAppConfig config, BuildTarget target)
 		{
 			// Application.productName
 			if (!string.IsNullOrEmpty(config.ProductName))
@@ -121,14 +121,29 @@ namespace UnityFx.BuildTools
 			}
 
 			// Application.identifier
+			var bundleIdentifier = GetBundleIdentifier(config);
+
+			if (!string.IsNullOrEmpty(bundleIdentifier))
+			{
+				PlayerSettings.SetApplicationIdentifier(GetBuildTargetGroup(target), bundleIdentifier);
+			}
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public static string GetBundleIdentifier(IAppConfig config)
+		{
 			if (!string.IsNullOrEmpty(config.BundleIdentifier))
 			{
-				PlayerSettings.SetApplicationIdentifier(GetActiveBuildTargetGroup(), config.BundleIdentifier);
+				return config.BundleIdentifier;
 			}
 			else if (!string.IsNullOrEmpty(config.ProductId) && !string.IsNullOrEmpty(config.CompanyId))
 			{
-				PlayerSettings.SetApplicationIdentifier(GetActiveBuildTargetGroup(), string.Format("com.{0}.{1}", config.CompanyId, config.ProductId));
+				return string.Format("com.{0}.{1}", config.CompanyId, config.ProductId);
 			}
+
+			return string.Empty;
 		}
 
 		/// <summary>

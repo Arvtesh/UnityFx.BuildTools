@@ -186,6 +186,20 @@ namespace UnityFx.BuildTools
 		/// <summary>
 		/// Builds the project for the specified target.
 		/// </summary>
+		public static void Build()
+		{
+			var config = LoadConfig();
+			var result = Build(config);
+
+			if (result.summary.result != BuildResult.Succeeded)
+			{
+				// TODO
+			}
+		}
+
+		/// <summary>
+		/// Builds the project for the specified target.
+		/// </summary>
 		public static BuildReport Build(BuildTarget target, bool developmentBuild)
 		{
 			var config = LoadConfig(target, developmentBuild);
@@ -233,7 +247,7 @@ namespace UnityFx.BuildTools
 			config.Apply();
 			config.DebugLog();
 
-			Debug.Log(string.Format("<b>Build</b>: {0}", Path.GetFullPath(executablePath)));
+			Debug.Log(string.Format("<b>Build path</b>: {0}", Path.GetFullPath(executablePath)));
 			return BuildPipeline.BuildPlayer(playerOptions);
 		}
 

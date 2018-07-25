@@ -45,7 +45,7 @@ namespace UnityFx.BuildTools
 		/// <summary>
 		/// 
 		/// </summary>
-		public const string DefaultBuildConfigPath = "../";
+		public const string DefaultBuildConfigPath = "";
 
 		/// <summary>
 		/// 
@@ -405,9 +405,11 @@ namespace UnityFx.BuildTools
 			var text = new StringBuilder();
 
 			text.AppendLine("<b>BUILD CONFIG:</b>");
+			text.AppendLine("  ProductId: " + (ProductId != null ? ProductId : string.Empty));
 			text.AppendLine("  ProductName: " + (ProductName != null ? ProductName : string.Empty));
+			text.AppendLine("  CompanyId: " + (CompanyId != null ? CompanyId : string.Empty));
 			text.AppendLine("  CompanyName: " + (CompanyName != null ? CompanyName : string.Empty));
-			text.AppendLine("  BundleIdentifier: " + (BundleIdentifier != null ? BundleIdentifier : string.Empty));
+			text.AppendLine("  BundleIdentifier: " + BuildUtility.GetBundleIdentifier(this));
 			text.AppendLine("  BundleVersion: " + (BundleVersion != null ? BundleVersion : string.Empty));
 			text.AppendLine("  BundleVersionCode: " + BundleVersionCode);
 			text.AppendLine("  BuildNumber: " + BuildNumber);
