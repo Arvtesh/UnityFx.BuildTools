@@ -2,19 +2,20 @@
 // Licensed under the MIT license. See the LICENSE.md file in the project root for more information.
 
 using System;
-using System.Reflection;
 using System.Globalization;
 using System.IO;
 using System.Xml;
 using System.Xml.Serialization;
 using UnityEditor;
+#if UNITY_PURCHASING
 using UnityEditor.Purchasing;
+#endif
 using UnityEngine;
 #if UNITY_PURCHASING
 using UnityEngine.Purchasing;
 #endif
 
-namespace UnityFx.BuildTools.Editor
+namespace UnityFx.BuildTools
 {
 	/// <summary>
 	/// Build utilities.
@@ -32,6 +33,26 @@ namespace UnityFx.BuildTools.Editor
 			ApplyAppConfig(config);
 			ApplyVersionConfig(config);
 
+			if (!string.IsNullOrEmpty(config.KeystoreName))
+			{
+				PlayerSettings.Android.keystoreName = config.KeystoreName;
+			}
+
+			if (config.KeystorePass != null)
+			{
+				PlayerSettings.Android.keystorePass = config.KeystorePass;
+			}
+
+			if (!string.IsNullOrEmpty(config.KeyaliasName))
+			{
+				PlayerSettings.Android.keyaliasName = config.KeyaliasName;
+			}
+
+			if (config.KeyaliasPass != null)
+			{
+				PlayerSettings.Android.keyaliasPass = config.KeyaliasPass;
+			}
+
 #if UNITY_PURCHASING
 
 			if (config.Store != AppStore.NotSpecified)
@@ -41,23 +62,21 @@ namespace UnityFx.BuildTools.Editor
 
 #endif
 
-			PlayerSettings.SetScriptingDefineSymbolsForGroup(GetActiveBuildTargetGroup(), string.Join(";", config.Defines));
+			if (config.Defines != null)
+			{
+				PlayerSettings.SetScriptingDefineSymbolsForGroup(GetActiveBuildTargetGroup(), string.Join(";", config.Defines));
+			}
 		}
 
 		/// <summary>
 		/// 
 		/// </summary>
-		/// <exception cref="InvalidOperationException"></exception>
 		public static void ApplyVersionConfig(IVersionConfig config)
 		{
 			// Application.identifier
 			if (!string.IsNullOrEmpty(config.BundleVersion))
 			{
 				PlayerSettings.bundleVersion = config.BundleVersion;
-			}
-			else
-			{
-				throw new InvalidOperationException();
 			}
 
 			// BuildNumber
@@ -67,19 +86,11 @@ namespace UnityFx.BuildTools.Editor
 				PlayerSettings.macOS.buildNumber = config.BuildNumber.ToString(NumberFormatInfo.InvariantInfo);
 				PlayerSettings.tvOS.buildNumber = config.BuildNumber.ToString(NumberFormatInfo.InvariantInfo);
 			}
-			else
-			{
-				throw new InvalidOperationException();
-			}
 
 			// BundleVersionCode
 			if (config.BundleVersionCode > 0)
 			{
 				PlayerSettings.Android.bundleVersionCode = config.BundleVersionCode;
-			}
-			else
-			{
-				throw new InvalidOperationException();
 			}
 		}
 
@@ -98,10 +109,6 @@ namespace UnityFx.BuildTools.Editor
 			{
 				PlayerSettings.productName = config.ProductId;
 			}
-			else
-			{
-				throw new InvalidOperationException();
-			}
 
 			// Application.companyName
 			if (!string.IsNullOrEmpty(config.CompanyName))
@@ -112,10 +119,6 @@ namespace UnityFx.BuildTools.Editor
 			{
 				PlayerSettings.companyName = config.CompanyId;
 			}
-			else
-			{
-				throw new InvalidOperationException();
-			}
 
 			// Application.identifier
 			if (!string.IsNullOrEmpty(config.BundleIdentifier))
@@ -125,10 +128,6 @@ namespace UnityFx.BuildTools.Editor
 			else if (!string.IsNullOrEmpty(config.ProductId) && !string.IsNullOrEmpty(config.CompanyId))
 			{
 				PlayerSettings.SetApplicationIdentifier(GetActiveBuildTargetGroup(), string.Format("com.{0}.{1}", config.CompanyId, config.ProductId));
-			}
-			else
-			{
-				throw new InvalidOperationException();
 			}
 		}
 
@@ -163,6 +162,34 @@ namespace UnityFx.BuildTools.Editor
 		{
 			return GetBuildTargetGroup(EditorUserBuildSettings.activeBuildTarget);
 		}
+
+#if UNITY_PURCHASING
+
+		/// <summary>
+		/// Returns default store for a build target.
+		/// </summary>
+		public static AppStore GetDefaultStore(BuildTarget target)
+		{
+			switch (target)
+			{
+				case BuildTarget.Android:
+					return AppStore.GooglePlay;
+				case BuildTarget.iOS:
+				case BuildTarget.tvOS:
+					return AppStore.AppleAppStore;
+				case BuildTarget.StandaloneOSXIntel:
+				case BuildTarget.StandaloneOSXIntel64:
+				case BuildTarget.StandaloneOSXUniversal:
+					return AppStore.MacAppStore;
+				case BuildTarget.StandaloneWindows:
+				case BuildTarget.StandaloneWindows64:
+					return AppStore.WinRT;
+			}
+
+			return AppStore.NotSpecified;
+		}
+
+#endif
 
 		#endregion
 

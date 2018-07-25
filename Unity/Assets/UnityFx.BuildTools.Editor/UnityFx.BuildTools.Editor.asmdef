@@ -1,0 +1,10 @@
+{
+    "name": "UnityFx.BuildTools.Editor",
+    "references": [
+        "UnityFx.BuildTools"
+    ],
+    "optionalUnityReferences": [],
+    "includePlatforms": [ "Editor" ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false
+}

@@ -4,7 +4,7 @@
 using System;
 using UnityEditor;
 
-namespace UnityFx.BuildTools.Editor
+namespace UnityFx.BuildTools
 {
 	/// <summary>
 	/// Defines a configuration for Unity version.

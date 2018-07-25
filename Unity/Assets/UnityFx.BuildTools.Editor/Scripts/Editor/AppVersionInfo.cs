@@ -8,7 +8,7 @@ using System.IO;
 using System.Text;
 using UnityEditor;
 
-namespace UnityFx.BuildTools.Editor
+namespace UnityFx.BuildTools
 {
 	/// <summary>
 	/// The class provides easy access to repository version information (supplied by GitVersion).
@@ -17,6 +17,7 @@ namespace UnityFx.BuildTools.Editor
 	{
 		#region data
 
+		private readonly BuildTarget _target;
 		private readonly string _gitVersionResult = string.Empty;
 		private readonly string _bundleVersion;
 		private readonly string _bundleVersionMmp;
@@ -91,7 +92,7 @@ namespace UnityFx.BuildTools.Editor
 		/// <summary>
 		/// Initializes a new instance of the <see cref="AppVersionInfo"/> class.
 		/// </summary>
-		public AppVersionInfo(string gitVersionPath, int buildNumber = 0)
+		public AppVersionInfo(BuildTarget target, string gitVersionPath, int buildNumber = 0)
 		{
 #if UNITY_EDITOR_OSX
 
@@ -131,6 +132,7 @@ namespace UnityFx.BuildTools.Editor
 
 			proc.Start();
 
+			_target = target;
 			_gitVersionResult = proc.StandardOutput.ReadToEnd();
 
 			var major = GetJsonNumber(_gitVersionResult, "Major");
@@ -197,11 +199,12 @@ namespace UnityFx.BuildTools.Editor
 			{
 				if (IsRelease)
 				{
-#if UNITY_IOS
-					return _bundleVersionMmp;
-#else
+					if (_target == BuildTarget.iOS)
+					{
+						return _bundleVersionMmp;
+					}
+
 					return _bundleVersionMmp + '.' + _commitsSinceVersionSource.ToString(NumberFormatInfo.InvariantInfo);
-#endif
 				}
 
 				return _bundleVersion;
