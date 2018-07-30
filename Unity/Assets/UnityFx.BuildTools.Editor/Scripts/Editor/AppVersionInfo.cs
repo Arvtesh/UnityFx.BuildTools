@@ -197,13 +197,12 @@ namespace UnityFx.BuildTools
 		{
 			get
 			{
-				if (IsRelease)
+				if (_target == BuildTarget.iOS)
 				{
-					if (_target == BuildTarget.iOS)
-					{
-						return _bundleVersionMmp;
-					}
-
+					return _bundleVersionMmp;
+				}
+				else if (IsRelease)
+				{
 					return _bundleVersionMmp + '.' + _commitsSinceVersionSource.ToString(NumberFormatInfo.InvariantInfo);
 				}
 
