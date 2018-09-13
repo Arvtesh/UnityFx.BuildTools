@@ -119,7 +119,7 @@ namespace UnityFx.BuildTools
 
 				if (string.IsNullOrEmpty(BuildPath))
 				{
-					BuildPath = DefaultBuildPath;
+					BuildPathBase = DefaultBuildPath;
 				}
 			}
 
@@ -291,7 +291,13 @@ namespace UnityFx.BuildTools
 		public string GitVersionPath { get; set; }
 
 		/// <summary>
-		/// Gets or sets relative path to a folder that would contain build results.
+		/// Gets or sets relative path to a folder containing build results.
+		/// </summary>
+		[XmlIgnore]
+		public string BuildPathBase { get; set; }
+
+		/// <summary>
+		/// Gets relative path to a build executable.
 		/// </summary>
 		[XmlIgnore]
 		public string BuildPath { get; set; }
@@ -387,6 +393,30 @@ namespace UnityFx.BuildTools
 			var result = MemberwiseClone() as BuildConfig;
 			CombineAppConfig(fallbackConfig, result);
 			return result;
+		}
+
+		/// <summary>
+		/// Validates the config settings.
+		/// </summary>
+		public virtual void Validate()
+		{
+			// BuildPath
+			if (string.IsNullOrEmpty(BuildPath))
+			{
+				if (string.IsNullOrEmpty(BuildPathBase))
+				{
+					BuildPathBase = DefaultBuildPath;
+					BuildPath = GetBuildPath(DefaultBuildPath, this);
+				}
+				else
+				{
+					BuildPath = GetBuildPath(BuildPathBase, this);
+				}
+			}
+			else
+			{
+				BuildPathBase = Path.GetDirectoryName(BuildPath);
+			}
 		}
 
 		/// <summary>
@@ -500,6 +530,44 @@ namespace UnityFx.BuildTools
 		#endregion
 
 		#region implementation
+
+		private static string GetBuildPath(string basePath, IBuildConfig config)
+		{
+			var targetStr = config.BuildTarget.ToString();
+			var path = basePath;
+
+#if UNITY_PURCHASING
+
+			if (store != AppStore.NotSpecified && store != BuildUtility.GetDefaultStore(target))
+			{
+				targetStr += '.' + store.ToString();
+			}
+
+#endif
+
+			if (string.IsNullOrEmpty(config.ProductId))
+			{
+				path = Path.Combine(Path.Combine(path, "v" + config.BundleVersion), targetStr);
+			}
+			else
+			{
+				path = Path.Combine(Path.Combine(path, config.ProductId + "_v" + config.BundleVersion), targetStr);
+			}
+
+			var ext = ".exe";
+			var target = config.BuildTarget;
+
+			if (target == BuildTarget.Android)
+			{
+				ext = ".apk";
+			}
+			else if (target == BuildTarget.iOS)
+			{
+				ext = ".app";
+			}
+
+			return Path.Combine(path, config.ProductId + ext);
+		}
 
 		private static void CombineVersionConfig(IVersionConfig fallbackConfig, BuildConfig result)
 		{

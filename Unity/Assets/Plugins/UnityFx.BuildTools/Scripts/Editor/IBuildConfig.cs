@@ -24,12 +24,17 @@ namespace UnityFx.BuildTools
 		BuildOptions BuildOptions { get; }
 
 		/// <summary>
-		/// Gets relative path to the GitVersion.
+		/// Gets relative path to the GitVersion executable.
 		/// </summary>
 		string GitVersionPath { get; }
 
 		/// <summary>
-		/// Gets relative path to a folder that would contain build results.
+		/// Gets relative path to a folder containing build results.
+		/// </summary>
+		string BuildPathBase { get; }
+
+		/// <summary>
+		/// Gets relative path to a build executable.
 		/// </summary>
 		string BuildPath { get; }
 
@@ -87,6 +92,11 @@ namespace UnityFx.BuildTools
 		/// Creates a new configuration with combined settings from this config and the <paramref name="fallbackConfig"/>.
 		/// </summary>
 		IBuildConfig Combine(IAppConfig fallbackConfig);
+
+		/// <summary>
+		/// Validates the config settings.
+		/// </summary>
+		void Validate();
 
 		/// <summary>
 		/// Applies configuration to Unity <see cref="PlayerSettings"/>.

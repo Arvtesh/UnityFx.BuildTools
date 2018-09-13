@@ -169,6 +169,7 @@ namespace UnityFx.BuildTools
 				config = config.Combine(versionConfig);
 			}
 
+			config.Validate();
 			return config;
 		}
 
@@ -230,13 +231,11 @@ namespace UnityFx.BuildTools
 				throw new ArgumentNullException("config");
 			}
 
-			var buildPath = GetBuildPath(config);
-			var executableName = GetExecutableName(config.ProductId, config.BuildTarget);
-			var executablePath = Path.Combine(buildPath, executableName);
+			var buildPath = Path.GetDirectoryName(config.BuildPath);
 			var sceneNames = config.Scenes != null ? config.Scenes : EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray();
 			var playerOptions = new BuildPlayerOptions()
 			{
-				locationPathName = executablePath,
+				locationPathName = config.BuildPath,
 				options = config.BuildOptions,
 				scenes = sceneNames,
 				target = config.BuildTarget
@@ -247,7 +246,7 @@ namespace UnityFx.BuildTools
 			config.Apply();
 			config.DebugLog();
 
-			Debug.Log(string.Format("<b>Build path</b>: {0}", Path.GetFullPath(executablePath)));
+			Debug.Log(string.Format("<b>Build path</b>: {0}", Path.GetFullPath(config.BuildPath)));
 			return BuildPipeline.BuildPlayer(playerOptions);
 		}
 
